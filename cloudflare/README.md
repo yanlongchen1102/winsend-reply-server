@@ -9,6 +9,8 @@
 
 ## 部署步骤（约 10 分钟）
 
+### 方式 A：命令行手动部署
+
 ```bash
 # 1. 安装 wrangler（Cloudflare 官方 CLI）
 npm install -g wrangler
@@ -21,7 +23,29 @@ cd cloudflare
 wrangler deploy
 ```
 
-部署成功后 wrangler 会输出 Worker 地址，形如：
+### 方式 B：GitHub 推送自动部署（推荐）
+
+仓库已内置 `.github/workflows/deploy-cloudflare.yml`，push 到 main 且 `cloudflare/` 有变化时自动部署。
+
+1. 把本仓库推到 GitHub（见仓库根 README）
+2. 创建 Cloudflare API Token：https://dash.cloudflare.com/profile/api-tokens →
+   Create Token → 用 "Edit Cloudflare Workers" 模板 → 保存 token
+3. 查看账号 ID：Cloudflare 控制台 → Workers & Pages → 右侧栏 Account ID
+4. GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret：
+   - `CLOUDFLARE_API_TOKEN` = 第 2 步的 token
+   - `CLOUDFLARE_ACCOUNT_ID` = 第 3 步的账号 ID
+5. 首次部署（两种方式任选）：
+   - 在 GitHub Actions 页面手动运行一次 "Deploy Cloudflare Worker"
+   - 或本地 `wrangler deploy` 先建一次 Worker
+6. 之后每次 push 改动 `cloudflare/` 都会自动发布
+
+### 方式 C：Cloudflare 原生 Git 集成
+
+Cloudflare 控制台 → Workers & Pages → Import a repository，直接连接 GitHub 仓库，
+构建命令留空、部署命令填 `npx wrangler deploy --cwd cloudflare`（或按向导选择 wrangler.toml 所在目录）。
+与方式 B 二选一即可，不要同时启用，避免双管道互相覆盖。
+
+部署成功后可获得 Worker 地址，形如：
 
 ```
 https://windrop-relay.<你的账号子域>.workers.dev

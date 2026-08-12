@@ -1,0 +1,7 @@
+# Caddy 自动申请/续期 Let's Encrypt 证书，反代到本机 relay
+# 把域名换成你自己的，并同步修改客户端里的默认 relay 地址：
+#   - airclip:   main.go 的 DefaultRelayAddr
+#   - windrop-ios: WinDrop/Managers/RelayManager.swift 的 defaultRelayAddr
+relay.example.com {
+	reverse_proxy 127.0.0.1:8790
+}

@@ -1,0 +1,20 @@
+[Unit]
+Description=WinDrop Cloud Relay
+After=network.target
+
+[Service]
+Type=simple
+User=windrop
+WorkingDirectory=/opt/windrop-relay
+ExecStart=/opt/windrop-relay/windrop-relay
+Environment=LISTEN_ADDR=127.0.0.1:8790
+Environment=STORE_PATH=/var/lib/windrop-relay/relay-store.json
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/windrop-relay
+
+[Install]
+WantedBy=multi-user.target

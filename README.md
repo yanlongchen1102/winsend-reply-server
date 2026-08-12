@@ -49,18 +49,11 @@ innerJSON 目前只承载两种消息：`clipboard`（含 text）和 `requestCli
 
 ## 发布到 GitHub + 自动部署
 
-本仓库已内置 GitHub Actions 工作流（`.github/workflows/deploy-cloudflare.yml`），
-push 到 main 后自动把 `cloudflare/` 部署到 Cloudflare Workers。
+本仓库已推送到 GitHub（yanlongchen1102/winsend-reply-server），并配置了
+**Cloudflare 原生 Git 集成**：push 到 main 后自动把 `cloudflare/` 部署到 Cloudflare Workers。
 
-```bash
-# 在 GitHub 网页新建一个空仓库（例如 windrop-relay，不要初始化 README），然后：
-git remote add origin git@github.com:<你的用户名>/windrop-relay.git
-git push -u origin main
-```
-
-再到仓库 Settings → Secrets and variables → Actions 配置两个 secret：
-`CLOUDFLARE_API_TOKEN`（Edit Cloudflare Workers 模板）和 `CLOUDFLARE_ACCOUNT_ID`。
-详见 `cloudflare/README.md` 的方式 B/C。
+设置要点（详见 `cloudflare/README.md` 方式 C）：连接仓库时 **Root directory 填 `cloudflare`**，
+Build command 留空，Deploy command 保持默认 `npx wrangler deploy`。
 
 ## 本地运行
 

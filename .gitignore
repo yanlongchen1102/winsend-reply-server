@@ -2,3 +2,7 @@ windrop-relay
 windrop-relay.exe
 relay-store.json
 *.tmp
+node_modules/
+.wrangler/
+package.json
+package-lock.json

@@ -1,0 +1,22 @@
+name = "windrop-relay"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Durable Objects 绑定：每个配对组一个实例（按 groupId 分片）
+[durable_objects]
+bindings = [
+  { name = "GROUPS", class_name = "GroupRelay" }
+]
+
+# 新版 DO 使用 SQLite 存储后端
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GroupRelay"]
+
+# 可选：绑定自定义域名（推荐，workers.dev 子域在某些网络环境下可能被干扰）
+# 在 Cloudflare 控制台 → Workers → 本 Worker → Settings → Domains & Routes 添加：
+#   relay.example.com/*
+# 或者在下方配置（域名需托管在 Cloudflare DNS）：
+# routes = [
+#   { pattern = "relay.example.com/ws*", zone_name = "example.com" }
+# ]

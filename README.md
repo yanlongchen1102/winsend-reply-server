@@ -23,6 +23,17 @@ wss://<host>/ws?deviceId=<稳定设备ID>&groupId=<HKDF派生>&joinKey=<HKDF派�
 - 收到任何文本帧 → 原样转发给组内其他在线连接；目标队列满则丢弃
 - 心跳走 WebSocket 控制帧 ping/pong（gorilla 自动回 ping），90 秒无 pong 判定死亡
 
+presence 通知（服务端生成的明文控制帧，让客户端感知组内成员上下线）：
+
+```json
+{"type":"windrop-relay-presence-v1","event":"join|leave","deviceId":"<对端设备ID>","name":"<对端设备名>"}
+```
+
+- 新设备连接成功：先收到组内已有成员的快照（每个成员一帧 `join`），随后其他成员收到它的 `join`
+- 设备断开：其余成员收到 `leave`；同一 deviceId 被新连接顶替时不广播 `leave`（重连场景，客户端按 deviceId upsert）
+- 只携带 deviceId + name（两者本就从连接 URL 对 relay 可见），不含任何剪贴板内容
+- 旧版客户端不识别该类型会直接丢弃，向后兼容
+
 密钥派生（客户端侧，两端必须一致）：
 
 ```

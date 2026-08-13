@@ -4,6 +4,9 @@
 //   wss://<worker>/ws?deviceId=&groupId=&joinKey=&name=
 //   - groupId/joinKey 由客户端从同步码 HKDF 派生，relay 只存 joinKey 的 SHA-256
 //   - 消息为端到端加密信封，本服务只按组 fan-out，不解析、不存储消息
+//   - presence：设备上线/下线时服务端生成明文控制帧
+//     {"type":"windrop-relay-presence-v1","event":"join|leave","deviceId":"...","name":"..."}
+//     新设备连接时先收到在线成员快照（逐个 join），随后其他成员收到它的 join
 //   - 离线即丢弃：剪贴板是状态，客户端重连后 requestClipboard 追平
 //
 // 架构：每个 groupId 映射到一个 Durable Object（GroupRelay），组内连接由它持有。
@@ -89,7 +92,16 @@ export class GroupRelay {
 
     // Hibernation API：无消息时 DO 可休眠，WebSocket 由运行时保持
     this.ctx.acceptWebSocket(server, [deviceId]);
-    server.serializeAttachment({ deviceId });
+    server.serializeAttachment({ deviceId, name });
+
+    // presence 通知：先给新设备发在线成员快照，再向其他成员广播 join。
+    // 重连场景下对端会收到重复 join，客户端按 deviceId upsert 即可。
+    for (const peer of this.ctx.getWebSockets()) {
+      const meta = peer.deserializeAttachment();
+      if (!meta || meta.deviceId === deviceId) continue;
+      try { server.send(presenceMessage("join", meta.deviceId, meta.name)); } catch (_) {}
+      try { peer.send(presenceMessage("join", deviceId, name)); } catch (_) {}
+    }
 
     console.log(`online: device=${deviceId} name=${name} online=${this.ctx.getWebSockets().length}`);
 
@@ -118,8 +130,15 @@ export class GroupRelay {
 
   async webSocketClose(ws, code, reason) {
     const meta = ws.deserializeAttachment();
-    console.log(`offline: device=${meta && meta.deviceId} code=${code}`);
+    const deviceId = meta && meta.deviceId;
+    console.log(`offline: device=${deviceId} code=${code}`);
     try { ws.close(code, reason); } catch (_) {}
+    // presence 通知：同 deviceId 已被新连接顶替时不算下线，不广播 leave
+    if (!deviceId || this.ctx.getWebSockets(deviceId).length > 0) return;
+    const leaveMsg = presenceMessage("leave", deviceId, "");
+    for (const peer of this.ctx.getWebSockets()) {
+      try { peer.send(leaveMsg); } catch (_) {}
+    }
   }
 
   async webSocketError(ws, error) {
@@ -133,4 +152,12 @@ async function sha256Hex(text) {
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+// presence 控制帧（服务端明文生成）：只含 deviceId + name，
+// 两者本就从连接 URL 可见，不涉及剪贴板内容。
+function presenceMessage(event, deviceId, name) {
+  const msg = { type: "windrop-relay-presence-v1", event, deviceId };
+  if (name) msg.name = name;
+  return JSON.stringify(msg);
 }

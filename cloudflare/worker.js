@@ -133,8 +133,11 @@ export class GroupRelay {
     const deviceId = meta && meta.deviceId;
     console.log(`offline: device=${deviceId} code=${code}`);
     try { ws.close(code, reason); } catch (_) {}
-    // presence 通知：同 deviceId 已被新连接顶替时不算下线，不广播 leave
-    if (!deviceId || this.ctx.getWebSockets(deviceId).length > 0) return;
+    // presence 通知：同 deviceId 已被新连接顶替时不算下线，不广播 leave。
+    // 注意：close 回调执行期间，正在关闭的 ws 仍可能出现在 getWebSockets 里，需排除自身。
+    if (!deviceId) return;
+    const remaining = this.ctx.getWebSockets(deviceId).filter((s) => s !== ws);
+    if (remaining.length > 0) return;
     const leaveMsg = presenceMessage("leave", deviceId, "");
     for (const peer of this.ctx.getWebSockets()) {
       try { peer.send(leaveMsg); } catch (_) {}
